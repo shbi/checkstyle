@@ -114,11 +114,24 @@ public class NeedBracesCheck extends Check {
     private boolean allowSingleLineStatement;
 
     /**
+     * Check's option for skipping only single-line exit statements.
+     */
+    private boolean allowOnlySingleLineExitStatement;
+
+    /**
      * Setter.
      * @param allowSingleLineStatement Check's option for skipping single-line statements
      */
     public void setAllowSingleLineStatement(boolean allowSingleLineStatement) {
         this.allowSingleLineStatement = allowSingleLineStatement;
+    }
+
+    /**
+     * Setter.
+     * @param allowOnlySingleLineExitStatement Check's option for skipping only single-line exit statements
+     */
+    public void setAllowOnlySingleLineExitStatement(boolean allowOnlySingleLineExitStatement) {
+        this.allowOnlySingleLineExitStatement = allowOnlySingleLineExitStatement;
     }
 
     @Override
@@ -168,7 +181,41 @@ public class NeedBracesCheck extends Check {
      * @return true if current statement can be skipped by Check.
      */
     private boolean isSkipStatement(DetailAST statement) {
-        return allowSingleLineStatement && isSingleLineStatement(statement);
+        if (allowSingleLineStatement && !allowOnlySingleLineExitStatement) {
+            return isSingleLineStatement(statement);
+        } else if (allowOnlySingleLineExitStatement) {
+            return isSingleLineExitStatement(statement);
+        }
+        return false;
+    }
+
+    /**
+     * Checks if current statement is a single-line exit statement, e.g.:
+     * <p>
+     * <code>
+     * if (obj.isValid()) return true;
+     * </code>
+     * </p>
+     * <p>
+     * <code>
+     * while (obj.isValid()) return true;
+     * </code>
+     * </p>
+     * @param statement if, else statements.
+     * @return true if current statement is single-line statement.
+     */
+    private boolean isSingleLineExitStatement(DetailAST statement) {
+        final boolean singleLine = isSingleLineStatement(statement);
+        if (!singleLine) return false;
+        switch (statement.getType()) {
+            case TokenTypes.LITERAL_IF:
+                return isSingleLineIfExit(statement);
+            case TokenTypes.LITERAL_ELSE:
+                return isSingleLineElseExit(statement);
+            default:
+                break;
+        }
+        return false;
     }
 
     /**
@@ -298,7 +345,8 @@ public class NeedBracesCheck extends Check {
     private static boolean isSingleLineIf(DetailAST literalIf) {
         boolean result = false;
         final DetailAST ifCondition = literalIf.findFirstToken(TokenTypes.EXPR);
-        if (literalIf.getParent().getType() == TokenTypes.SLIST) {
+        if (literalIf.getParent().getType() == TokenTypes.SLIST
+            || literalIf.getParent().getType() == TokenTypes.LITERAL_ELSE) {
             final DetailAST literalIfLastChild = literalIf.getLastChild();
             final DetailAST block;
             if (literalIfLastChild.getType() == TokenTypes.LITERAL_ELSE) {
@@ -310,6 +358,38 @@ public class NeedBracesCheck extends Check {
             result = ifCondition.getLineNo() == block.getLineNo();
         }
         return result;
+    }
+
+    /**
+     * Checks if current if statement is a single-line if exit statement, e.g.:
+     * <p>
+     * <code>
+     * if (obj.isValid()) return true;
+     * </code>
+     * </p>
+     * @param literalIf {@link TokenTypes#LITERAL_IF if statement}.
+     * @return true if current if statement is a single-line if exit statement.
+     */
+    private static boolean isSingleLineIfExit(DetailAST literalIf) {
+        final DetailAST ifCondition = literalIf.findFirstToken(TokenTypes.EXPR);
+        if (literalIf.getParent().getType() == TokenTypes.SLIST
+            || literalIf.getParent().getType() == TokenTypes.LITERAL_ELSE) {
+            final DetailAST literalIfLastChild = literalIf.getLastChild();
+            final DetailAST block;
+            if (literalIfLastChild.getType() == TokenTypes.LITERAL_ELSE) {
+                return false;
+            }
+            else {
+                block = literalIfLastChild;
+            }
+            final int blockType = block.getType();
+            return (blockType == TokenTypes.LITERAL_BREAK
+                || blockType == TokenTypes.LITERAL_RETURN
+                || blockType == TokenTypes.LITERAL_CONTINUE
+                || blockType == TokenTypes.LITERAL_THROW)
+                && ifCondition.getLineNo() == block.getLineNo();
+        }
+        return false;
     }
 
     /**
@@ -391,6 +471,31 @@ public class NeedBracesCheck extends Check {
         final DetailAST block = literalElse.getFirstChild();
         if (block.getType() != TokenTypes.SLIST) {
             result = literalElse.getLineNo() == block.getLineNo();
+        }
+        return result;
+    }
+
+    /**
+     * Checks if current else statement is a single-line else exit statement, e.g.:
+     * <p>
+     * <code>
+     * else return value;
+     * </code>
+     * </p>
+     * @param literalElse {@link TokenTypes#LITERAL_ELSE else statement}.
+     * @return true if current else statement is a single-line else exit statement.
+     */
+    private static boolean isSingleLineElseExit(DetailAST literalElse) {
+        boolean result = false;
+        final DetailAST block = literalElse.getFirstChild();
+        if (block.getType() != TokenTypes.SLIST) {
+            final int blockType  = block.getType();
+            if (blockType == TokenTypes.LITERAL_CONTINUE
+                || blockType == TokenTypes.LITERAL_RETURN
+                || blockType == TokenTypes.LITERAL_BREAK
+                || blockType == TokenTypes.LITERAL_IF) {
+                result = literalElse.getLineNo() == block.getLineNo();
+            }
         }
         return result;
     }

@@ -181,6 +181,10 @@
         forbidden.</td>
       </tr>
       <tr>
+        <td><a href="config_whitespace.html#EmptyLineCount">EmptyLineCount</a></td>
+        <td>Checks the number of sequential empty lines is less than the maximum allowed.</td>
+      </tr>
+      <tr>
         <td><a href="config_whitespace.html#EmptyLineSeparator">EmptyLineSeparator</a></td>
         <td>Checks for blank line separators.</td>
       </tr>

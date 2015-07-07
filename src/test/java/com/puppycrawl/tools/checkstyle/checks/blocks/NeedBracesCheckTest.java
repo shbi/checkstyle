@@ -98,4 +98,29 @@ public class NeedBracesCheckTest extends BaseCheckTestSupport {
         };
         verify(checkConfig, getPath("InputBracesSingleLineStatements.java"), expected);
     }
+
+    @Test
+    public void testSingleLineExitCase() throws Exception {
+        final DefaultConfiguration checkConfig =
+            createCheckConfig(NeedBracesCheck.class);
+        checkConfig.addAttribute("allowOnlySingleLineExitStatement", "true");
+        final String[] expected = {
+            "23: " + getCheckMessage(MSG_KEY_NEED_BRACES, "if"),
+            "29: " + getCheckMessage(MSG_KEY_NEED_BRACES, "if"),
+            "34: " + getCheckMessage(MSG_KEY_NEED_BRACES, "if"),
+            "38: " + getCheckMessage(MSG_KEY_NEED_BRACES, "if"),
+            "46: " + getCheckMessage(MSG_KEY_NEED_BRACES, "while"),
+            "48: " + getCheckMessage(MSG_KEY_NEED_BRACES, "while"),
+            "52: " + getCheckMessage(MSG_KEY_NEED_BRACES, "do"),
+            "53: " + getCheckMessage(MSG_KEY_NEED_BRACES, "do"),
+            "59: " + getCheckMessage(MSG_KEY_NEED_BRACES, "for"),
+            "61: " + getCheckMessage(MSG_KEY_NEED_BRACES, "for"),
+            "82: " + getCheckMessage(MSG_KEY_NEED_BRACES, "if"),
+            "83: " + getCheckMessage(MSG_KEY_NEED_BRACES, "else"),
+            "84: " + getCheckMessage(MSG_KEY_NEED_BRACES, "for"),
+            "88: " + getCheckMessage(MSG_KEY_NEED_BRACES, "if"),
+            "92: " + getCheckMessage(MSG_KEY_NEED_BRACES, "else"),
+        };
+        verify(checkConfig, getPath("InputBracesSingleLineExitStatements.java"), expected);
+    }
 }
